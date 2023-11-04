@@ -1,0 +1,354 @@
+import json
+import string
+import random
+from json import JSONDecodeError
+from datetime import datetime
+
+def Register(type, gamers_json_file, sellers_json_file, Email_ID, Username, Password, Contact_Number):
+    if type.lower() == 'seller':
+        f = open(sellers_json_file, 'r+')
+        d = {
+            "Email": Email_ID,
+            "Username": Username,
+            "Password": Password,
+            "Contact Number": Contact_Number,
+        }
+        try:
+            content = json.load(f)
+            if d not in content and d["Username"] not in str(content):
+                content.append(d)
+                f.seek(0)
+                f.truncate()
+                json.dump(content, f)
+        except JSONDecodeError:
+            l = []
+            l.append(d)
+            json.dump(l, f)
+        f.close()
+        return True
+    elif type.lower() == 'gamer':
+        f = open(gamers_json_file, 'r+')
+        d = {
+            "Email": Email_ID,
+            "Username": Username,
+            "Password": Password,
+            "Contact Number": Contact_Number,
+            "Wishlist": [],
+            "Cart": [],
+        }
+        try:
+            content = json.load(f)
+            if d not in content and d["Username"] not in str(content):
+                content.append(d)
+                f.seek(0)
+                f.truncate()
+                json.dump(content, f)
+        except JSONDecodeError:
+            l = []
+            l.append(d)
+            json.dump(l, f)
+        f.close()
+
+def Login(type, gamers_json_file, sellers_json_file, Username, Password):
+    d = 0
+    if type.lower() == 'seller':
+        f = open(sellers_json_file, 'r+')
+    else:
+        f = open(gamers_json_file, 'r+')
+    try:
+        content = json.load(f)
+    except JSONDecodeError:
+        return False
+    for i in range(len(content)):
+        if content[i]["Username"] == Username and content[i]["Password"] == Password:
+            d = 1
+            break
+    f.seek(0)
+    f.truncate()
+    json.dump(content, f)
+    f.close()
+    if d == 0:
+        return False
+    return True
+
+def AutoGenerate_ProductID():
+    product_ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+    return product_ID
+
+def AutoGenerate_OrderID():
+    Order_ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
+    return Order_ID
+
+def days_between(d1, d2):
+    d1 = datetime.strptime(d1, "%Y-%m-%d")
+    d2 = datetime.strptime(d2, "%Y-%m-%d")
+    return abs((d2 - d1).days)
+
+def Create_Product(owner, product_json_file, product_ID, product_title, product_type, price_per_day, total_stock_available):
+    try:
+        f = open(product_json_file, 'r')
+        products = json.load(f)
+        f.close()
+    except JSONDecodeError:
+        products = []
+
+    new_product = {
+        "ProductID": product_ID,
+        "ProductTitle": product_title,
+        "ProductType": product_type,
+        "PricePerDay": price_per_day,
+        "TotalStockAvailable": total_stock_available,
+        "SellerUsername": owner
+    }
+
+    products.append(new_product)
+
+    with open(product_json_file, 'w') as f:
+        json.dump(products, f)
+
+def Fetch_all_Products_created_by_seller(owner, product_json_file):
+    try:
+        f = open(product_json_file, 'r')
+        products = json.load(f)
+        f.close()
+    except JSONDecodeError:
+        products = []
+
+    seller_products = [product for product in products if product["SellerUsername"] == owner]
+
+    return seller_products
+
+def Fetch_all_products(products_json_file):
+    All_Products_list = []
+    f = open(products_json_file, 'r')
+    try:
+        content = json.load(f)
+        All_Products_list = content
+    except JSONDecodeError:
+        pass
+    return All_Products_list
+
+def Fetch_Product_By_ID(product_json_file, product_ID):
+    try:
+        f = open(product_json_file, 'r')
+        products = json.load(f)
+        f.close()
+    except JSONDecodeError:
+        products = []
+
+    product = [product for product in products if product["ProductID"] == product_ID]
+
+    return product
+
+def Update_Product(Username, product_json_file, product_ID, detail_to_be_updated, new_value):
+    try:
+        f = open(product_json_file, 'r')
+        products = json.load(f)
+        f.close()
+    except JSONDecodeError:
+        products = []
+
+    for product in products:
+        if product["ProductID"] == product_ID and product["SellerUsername"] == Username:
+            if detail_to_be_updated == "ProductTitle":
+                product["ProductTitle"] = new_value
+            elif detail_to_be_updated == "ProductType":
+                product["ProductType"] = new_value
+            elif detail_to_be_updated == "PricePerDay":
+                product["PricePerDay"] = int(new_value)
+            elif detail_to_be_updated == "TotalStockAvailable":
+                product["TotalStockAvailable"] = int(new_value)
+
+    with open(product_json_file, 'w') as f:
+        json.dump(products, f)
+
+def Add_item_to_wishlist(Username, product_ID, gamers_json_file):
+    try:
+        f = open(gamers_json_file, 'r')
+        gamers = json.load(f)
+        f.close()
+    except JSONDecodeError:
+        gamers = []
+
+    for gamer in gamers:
+        if gamer["Username"] == Username:
+            if product_ID not in gamer["Wishlist"]:
+                gamer["Wishlist"].append(product_ID)
+
+    with open(gamers_json_file, 'w') as f:
+        json.dump(gamers, f)
+
+def Remove_item_from_wishlist(Username, product_ID, gamers_json_file):
+    try:
+        f = open(gamers_json_file, 'r')
+        gamers = json.load(f)
+        f.close()
+    except JSONDecodeError:
+        gamers = []
+
+    for gamer in gamers:
+        if gamer["Username"] == Username and product_ID in gamer["Wishlist"]:
+            gamer["Wishlist"].remove(product_ID)
+
+    with open(gamers_json_file, 'w') as f:
+        json.dump(gamers, f)
+
+def Add_item_to_cart(Username, product_ID, Quantity, gamers_json_file, booking_start_date, booking_end_date, products_json_file):
+    try:
+        f1 = open(gamers_json_file, 'r')
+        gamers = json.load(f1)
+        f1.close()
+    except JSONDecodeError:
+        gamers = []
+
+    try:
+        f2 = open(products_json_file, 'r')
+        products = json.load(f2)
+        f2.close()
+    except JSONDecodeError:
+        products = []
+
+    for gamer in gamers:
+        if gamer["Username"] == Username:
+            for product in products:
+                if product["ProductID"] == product_ID and Quantity <= product["TotalStockAvailable"]:
+                    new_item = {
+                        "Product ID": product_ID,
+                        "Quantity": Quantity,
+                        "Price": product["PricePerDay"],
+                        "Booking Start Date": booking_start_date,
+                        "Booking End Date": booking_end_date,
+                    }
+                    gamer["Cart"].append(new_item)
+                    product["TotalStockAvailable"] -= Quantity
+
+    with open(gamers_json_file, 'w') as f1:
+        json.dump(gamers, f1)
+
+    with open(products_json_file, 'w') as f2:
+        json.dump(products, f2)
+
+def Remove_item_from_cart(Username, product_ID, gamers_json_file):
+    try:
+        f1 = open(gamers_json_file, 'r')
+        gamers = json.load(f1)
+        f1.close()
+    except JSONDecodeError:
+        gamers = []
+
+    for gamer in gamers:
+        if gamer["Username"] == Username:
+            for item in gamer["Cart"]:
+                if item["Product ID"] == product_ID:
+                    gamer["Cart"].remove(item)
+
+    with open(gamers_json_file, 'w') as f1:
+        json.dump(gamers, f1)
+
+def View_Cart(Username, gamers_json_file):
+    try:
+        f = open(gamers_json_file, 'r')
+        gamers = json.load(f)
+        f.close()
+    except JSONDecodeError:
+        gamers = []
+
+    for gamer in gamers:
+        if gamer["Username"] == Username:
+            return gamer["Cart"]
+
+def Place_order(Username, gamers_json_file, Order_Id, orders_json_file, products_json_file):
+    try:
+        f1 = open(gamers_json_file, 'r')
+        gamers = json.load(f1)
+        f1.close()
+    except JSONDecodeError:
+        gamers = []
+
+    try:
+        f2 = open(products_json_file, 'r')
+        products = json.load(f2)
+        f2.close()
+    except JSONDecodeError:
+        products = []
+
+    for gamer in gamers:
+        if gamer["Username"] == Username:
+            total_cost = 0
+            order_items = []
+            for item in gamer["Cart"]:
+                product = next((p for p in products if p["ProductID"] == item["Product ID"]), None)
+                if product and item["Quantity"] <= product["TotalStockAvailable"]:
+                    total_cost += item["Price"] * item["Quantity"]
+                    order_items.append(item)
+                    product["TotalStockAvailable"] -= item["Quantity"]
+
+            new_order = {
+                "Order ID": Order_Id,
+                "Items": order_items,
+                "Total Cost": total_cost
+            }
+            gamer["Cart"] = []
+            gamer.setdefault("Orders", []).append(new_order)
+
+    with open(gamers_json_file, 'w') as f1:
+        json.dump(gamers, f1)
+
+    try:
+        f3 = open(orders_json_file, 'r')
+        orders = json.load(f3)
+        f3.close()
+    except JSONDecodeError:
+        orders = []
+
+    orders.append(new_order)
+
+    with open(orders_json_file, 'w') as f3:
+        json.dump(orders, f3)
+
+    with open(products_json_file, 'w') as f2:
+        json.dump(products, f2)
+
+def View_User_Details(gamers_json_file, Username):
+    try:
+        f = open(gamers_json_file, 'r')
+        gamers = json.load(f)
+        f.close()
+    except JSONDecodeError:
+        gamers = []
+
+    user_details = [gamer for gamer in gamers if gamer["Username"] == Username]
+
+    return user_details
+
+def Update_User(gamers_json_file, Username, detail_to_be_updated, updated_detail):
+    try:
+        f = open(gamers_json_file, 'r')
+        gamers = json.load(f)
+        f.close()
+    except JSONDecodeError:
+        gamers = []
+
+    for gamer in gamers:
+        if gamer["Username"] == Username:
+            if detail_to_be_updated == "Email":
+                gamer["Email"] = updated_detail
+            elif detail_to_be_updated == "Password":
+                gamer["Password"] = updated_detail
+            elif detail_to_be_updated == "Contact Number":
+                gamer["Contact Number"] = updated_detail
+
+    with open(gamers_json_file, 'w') as f:
+        json.dump(gamers, f)
+
+def Fetch_all_orders(orders_json_file, Username):
+    try:
+        f = open(orders_json_file, 'r')
+        orders = json.load(f)
+        f.close()
+    except JSONDecodeError:
+        orders = []
+
+    user_orders = [order for order in orders if any(item["Username"] == Username for item in order["Items"])]
+
+    return user_orders
